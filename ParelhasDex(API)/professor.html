@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>ParelhasDex - Professor</title>
+  <link rel="stylesheet" href="professor.css" />
+</head>
+<body>
+  <header>
+    <h1>ParelhasDex</h1>
+  </header>
+
+  <main>
+    <h2>Painel do Professor</h2>
+
+    <section class="filtros">
+      <input type="text" id="buscaNome" placeholder="Buscar por nome..." />
+      <select id="filtroTipo">
+        <option value="">Todos os tipos</option>
+      </select>
+    </section>
+
+    <section class="cadastro">
+      <h3>Cadastro de Pokémon</h3>
+      <input type="number" id="numero" placeholder="Número" />
+      <input type="text" id="nome" placeholder="Nome do Pokémon" />
+      <select id="tipo1"></select>
+      <select id="tipo2"></select>
+      <button onclick="adicionarPokemon()">Cadastrar</button>
+    </section>
+
+    <div id="resultado" class="lista"></div>
+  </main>
+
+  <script>
+    const API_URL = "https://6892947ec49d24bce867d977.mockapi.io/api/v1/pokemons";
+
+    const tiposPokemon = [
+      "normal", "fogo", "água", "planta", "elétrico", "gelo", "lutador", "venenoso",
+      "terrestre", "voador", "psíquico", "inseto", "pedra", "fantasma", "dragão",
+      "sombrio", "metálico", "fada"
+    ];
+
+    let pokemons = [];
+
+    const buscaNome = document.getElementById("buscaNome");
+    const filtroTipo = document.getElementById("filtroTipo");
+    const resultado = document.getElementById("resultado");
+    const tipo1Select = document.getElementById("tipo1");
+    const tipo2Select = document.getElementById("tipo2");
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function preencherTipos() {
+      tiposPokemon.forEach(tipo => {
+        const opt1 = document.createElement("option");
+        opt1.value = tipo;
+        opt1.textContent = capitalize(tipo);
+        tipo1Select.appendChild(opt1);
+
+        const optFiltro = document.createElement("option");
+        optFiltro.value = tipo;
+        optFiltro.textContent = capitalize(tipo);
+        filtroTipo.appendChild(optFiltro);
+      });
+      atualizarTipo2();
+    }
+
+    tipo1Select.addEventListener("change", atualizarTipo2);
+
+    function atualizarTipo2() {
+      const tipo1 = tipo1Select.value;
+      tipo2Select.innerHTML = "";
+      const opNone = document.createElement("option");
+      opNone.value = "";
+      opNone.textContent = "Não tem";
+      tipo2Select.appendChild(opNone);
+
+      tiposPokemon.forEach(tipo => {
+        if (tipo !== tipo1) {
+          const opt = document.createElement("option");
+          opt.value = tipo;
+          opt.textContent = capitalize(tipo);
+          tipo2Select.appendChild(opt);
+        }
+      });
+    }
+
+    async function carregarPokemons() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        pokemons = data.map(p => ({
+          id: p.id,
+          numero: Number(p.numero),
+          nome: p.nome,
+          tipo1: p.tipo1,
+          tipo2: p.tipo2
+        }));
+        exibirPokemons();
+      } catch (e) {
+        console.error("Erro ao carregar da API:", e);
+      }
+    }
+
+    function exibirPokemons() {
+      const nomeFiltro = buscaNome.value.toLowerCase();
+      const tipoFiltro = filtroTipo.value;
+
+      const encontrados = pokemons
+        .filter(p =>
+          p.nome.toLowerCase().includes(nomeFiltro) &&
+          (tipoFiltro === "" || p.tipo1 === tipoFiltro || p.tipo2 === tipoFiltro)
+        )
+        .sort((a, b) => a.numero - b.numero);
+
+      resultado.innerHTML = "";
+
+      if (encontrados.length === 0) {
+        resultado.innerHTML = "<p>Nenhum pokémon encontrado.</p>";
+        return;
+      }
+
+      encontrados.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <p><strong>Nº:</strong> ${p.numero}</p>
+          <p><strong>Nome:</strong> ${p.nome}</p>
+          <p><strong>Tipo 1:</strong> ${capitalize(p.tipo1)}</p>
+          <p><strong>Tipo 2:</strong> ${p.tipo2 ? capitalize(p.tipo2) : "Não tem"}</p>
+          <button onclick="editarPokemon('${p.id}')">Editar</button>
+          <button onclick="removerPokemon('${p.id}')">Remover</button>
+        `;
+        resultado.appendChild(div);
+      });
+    }
+
+    async function adicionarPokemon() {
+      const numero = parseInt(document.getElementById("numero").value);
+      const nome = document.getElementById("nome").value.trim();
+      const tipo1 = tipo1Select.value;
+      const tipo2 = tipo2Select.value;
+
+      if (!numero || !nome || !tipo1) {
+        alert("Preencha todos os campos obrigatórios.");
+        return;
+      }
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ numero, nome, tipo1, tipo2 })
+        });
+        limparFormulario();
+        carregarPokemons();
+      } catch (e) {
+        console.error("Erro ao adicionar:", e);
+      }
+    }
+
+    async function editarPokemon(id) {
+      const p = pokemons.find(p => p.id === id);
+      const novoNumero = parseInt(prompt("Novo número:", p.numero));
+      const novoNome = prompt("Novo nome:", p.nome);
+      const novoTipo1 = prompt("Novo tipo 1:", p.tipo1);
+      const novoTipo2 = prompt("Novo tipo 2 (ou vazio):", p.tipo2);
+
+      if (!novoNumero || !novoNome || !novoTipo1) {
+        alert("Dados inválidos.");
+        return;
+      }
+
+      try {
+        await fetch(`${API_URL}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            numero: novoNumero,
+            nome: novoNome,
+            tipo1: novoTipo1,
+            tipo2: novoTipo2
+          })
+        });
+        carregarPokemons();
+      } catch (e) {
+        console.error("Erro ao editar:", e);
+      }
+    }
+
+    async function removerPokemon(id) {
+      if (confirm("Deseja remover esse Pokémon?")) {
+        try {
+          await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+          carregarPokemons();
+        } catch (e) {
+          console.error("Erro ao remover:", e);
+        }
+      }
+    }
+
+    function limparFormulario() {
+      document.getElementById("numero").value = "";
+      document.getElementById("nome").value = "";
+      tipo1Select.selectedIndex = 0;
+      atualizarTipo2();
+    }
+
+    buscaNome.addEventListener("input", exibirPokemons);
+    filtroTipo.addEventListener("change", exibirPokemons);
+
+    preencherTipos();
+    carregarPokemons();
+  </script>
+</body>
+</html>

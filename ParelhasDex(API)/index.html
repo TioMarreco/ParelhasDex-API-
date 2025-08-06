@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>ParelhasDex - Início</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <header>
+    <h1>ParelhasDex</h1>
+  </header>
+  <main>
+    <h2>Bem-vindo à ParelhasDex!</h2>
+    <p>Escolha seu modo de acesso:</p>
+    <div class="botoes">
+      <a href="cidadao.html" class="botao cidadao">Entrar como Cidadão</a>
+      <button class="botao professor" onclick="pedirSenha()">Entrar como Professor</button>
+    </div>
+  </main>
+  <script>
+    function pedirSenha() {
+      const senha = prompt("Digite a senha do professor:");
+      if (senha === "profparelhas") {
+        window.location.href = "professor.html";
+      } else {
+        alert("Senha incorreta! Voltando à tela inicial.");
+        location.reload();
+      }
+    }
+  </script>
+</body>
+</html>
